@@ -39,8 +39,7 @@ ASSIGN_OP = :=
 L_COMMENT_BLOCK = /*
 R_COMMENT_BLOCK = */
 COMMENT_LINE = //
-BIN_OPERATOR = - | + | * | / | == | <> | > | < | >= | <= 
-UN_OPERATOR = - | + 
+OPERATOR = - | + | * | / | == | <> | > | < | >= | <= 
 WS = (\s | \t | \n)+
 ID = [a-zA-Z_][a-zA-Z0-9_]*
 LITERAL = "[^"]*" | '[^']*'

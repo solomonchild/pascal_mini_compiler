@@ -1,14 +1,14 @@
 from lexer import *
 
 def main():
-    lexer = Lexer("input.pas")
+    stream = FileStream("input.pas")
+    lexer = Lexer(stream)
 
     while True:
         line =  lexer.get_token()
         if line == None:
             break
-        print line
-    lexer.print_stable()
+        print(line)
     
 
 if __name__ == "__main__":

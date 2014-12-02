@@ -1,10 +1,26 @@
-from defs import TokenType 
 import string
+from enum import Enum
+
+TokenType = Enum("TokenType", "LPAREN RPAREN IF AND OR THEN COMMA ID DOT COLON SEMICOLON PROCEDURE VAR BEGIN END ASSIGN OPERATOR WS LITERAL INTEGER REAL LSQUARE RSQUARE UNKNOWN")
+
+
+
+class Token:
+    def __init__(self, kind, val):
+        self.kind = kind
+        self.val = val
+
+    def __str__(self):
+        return "Kind: {0}, value: [{1}]".format(self.kind, self.val)
 
 class SymbolEntry:
-    def __init__(self, TokenType, value, line):
+
+    def __str__(self):
+            return "Kind: {0}, value: \"{1}\", line: {2}".format(self.kind, self.val, self.line)
+
+    def __init__(self, Token, value, line):
         self.line = line
-        self.kind = TokenType
+        self.kind = Token
         self.val = value
 
 class FileStream:
@@ -21,37 +37,26 @@ class FileStream:
 
     def get_char(self):
         char = None
+        if len(self.lines) == 0:
+            raise Exception("No lines")
+
         if not self.eof:
             char = self._get_current_line()[self.pos]
+
+        self.pos += 1
+        if self.pos >= len(self._get_current_line()):
+            line = self.fd.readline()
+            line = line.rstrip("\n")
+            if line is "":
+                self.eof = True
+                return None
+            self.lines.append(line)
+            self.pos = 0
+            self.cur_line += 1
         return char 
 
     def _get_current_line(self):
         return self.lines[self.cur_line]
-
-    def next_char(self):
-        if len(self.lines) == 0:
-            raise Exception("No lines")
-
-        if self.pos >= len(self._get_current_line()):
-            line = self.fd.readline()
-            if line is "":
-                self.eof = True
-                return None
-            line = line.rstrip("\n")
-            self.lines.append(line)
-            self.pos = 0
-        char = self.get_char()
-        self.pos += 1
-        if self.pos >= len(self._get_current_line()):
-            line = self.fd.readline()
-            if line is "":
-                self.eof = True
-                return None
-            line = line.rstrip("\n")
-            self.lines.append(line)
-            self.cur_line += 1
-            self.pos = 0
-        return char 
 
     def put_char(self, how_many = 1):
         if self.lines is []:
@@ -69,44 +74,94 @@ class FileStream:
 
 class Lexer:
 
-    def __init__(self, filename):
+    
+    def __init__(self, stream):
         self.line = None
         self.inp = None
-        self.stable = [ ]
-        self.stream = FileStream(filename)
-        
-    def read_letters(self):
-        id = ""
+        self.sym_table = [ ]
+        self.stream = stream
+        self.lexeme = ""
+        self.keywords = {
+                ":=" : TokenType.ASSIGN,
+                "==" : TokenType.OPERATOR,
+                ">=" : TokenType.OPERATOR,
+                "<=" : TokenType.OPERATOR,
+                "<>" : TokenType.OPERATOR,
+                "if" : TokenType.IF,
+                "and" : TokenType.AND,
+                "or" : TokenType.OR,
+                "then" : TokenType.THEN,
+                "procedure" : TokenType.PROCEDURE,
+                "var" : TokenType.VAR,
+                "begin" : TokenType.BEGIN,
+                "end" : TokenType.END,
+                "(" : TokenType.LPAREN,
+                ")" : TokenType.RPAREN,
+                "[" : TokenType.RSQUARE,
+                "]" : TokenType.LSQUARE,
+                "," : TokenType.COMMA,
+                "." : TokenType.DOT,
+                ";" : TokenType.SEMICOLON,
+                ":" : TokenType.COLON,
+                "\t" : TokenType.WS,
+                " " : TokenType.WS,
+                "\n" : TokenType.WS,
+                "+" : TokenType.OPERATOR,
+                "-" : TokenType.OPERATOR,
+                "\\" : TokenType.OPERATOR,
+                "*" : TokenType.OPERATOR,
+        }
+
+    def isId(self, str):
+        return (lambda s: s in string.ascii_letters)(str)
+
+    def readId(self):
+        char = self.stream.get_char()
+        while char and (char in string.ascii_letters or char in string.digits):
+                self.lexeme += char
+                char = self.stream.get_char()
         self.stream.put_char()
-        while(True):
-            char = self.stream.next_char()
-            if char is not None and char in string.ascii_letters:
-                id += char
-            else:
-                self.stream.put_char()
-                break
-        return id
+
+    def makeToken(self, kind):
+        if self.lexeme in self.keywords:
+            return Token(self.keywords[self.lexeme], self.lexeme)
+        else:
+            se = SymbolEntry(TokenType.ID, self.lexeme, self.stream.current_line_num())
+            self.sym_table.append(se)
+            return Token(TokenType.ID, se)
 
     def get_token(self):
         global line_num
-        while(True):
-            char = self.stream.next_char()
+        while True:
+            self.lexeme = ""
+            char = self.stream.get_char()
+
             if not char:
                 return None
-            if char is "(":
-                self.stable.append(SymbolEntry(TokenType.LPAREN, "(", self.stream.current_line_num()))
-            if char is ")":
-                self.stable.append(SymbolEntry(TokenType.RPAREN, ")", self.stream.current_line_num()))
-            elif char in string.ascii_letters:
-                return self.read_letters()
-            elif char in string.whitespace:
-                pass
-            elif char in string.punctuation:
-                return char 
-            else:
-                return "UNKNOWN: " + char
 
-    def print_stable(self):
-        for entry in self.stable:
-            print "Kind: {0}, Value : {1}, Line: {2}".format(TokenType.map_kind_to_str(entry.kind), entry.val, entry.line)
+            if char in string.whitespace:
+                while char and char in string.whitespace:
+                    char = self.stream.get_char()
+                if char:
+                    self.stream.put_char()
+            elif self.isId(char):
+                self.stream.put_char()
+                self.readId()
+                return self.makeToken(TokenType.ID)
+            elif char in string.digits:
+                while char and char in string.digits:
+                        self.lexeme += char
+                        char = self.stream.get_char()
+                self.stream.put_char()
+                return Token(TokenType.INTEGER, self.lexeme)
+            else:
+                while char and char not in string.digits and char not in string.ascii_letters:
+                    self.lexeme += char
+                    char = self.stream.get_char()
+                self.stream.put_char()
+                return Token(TokenType.UNKNOWN, self.lexeme)
+
+    def print_sym_table(self):
+        for entry in self.sym_table:
+            print(entry )
 
