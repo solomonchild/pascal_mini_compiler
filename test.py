@@ -32,8 +32,23 @@ class StubIo():
 
 class LexerTest(unittest.TestCase):
 
-    def setup(self):
-        pass
+
+    def setUp(self):
+        def awaitKind(self, test, awaitedKind, awaitedVal):
+            test.assertTrue(isinstance(self, Token))
+            test.assertEqual(self.kind, awaitedKind)
+            test.assertEqual(self.val, awaitedVal)
+
+        def awaitId(self, test, val, line):
+            test.assertTrue(isinstance(self, Token))
+            test.assertEqual(self.kind, TokenType.ID)
+
+            test.assertTrue(isinstance(self.val, SymbolEntry))
+            test.assertEqual(self.val.kind, TokenType.ID)
+            test.assertEqual(self.val.val, val)
+            test.assertEqual(self.val.line, line)
+        Token.awaitId = awaitId
+        Token.awaitKind = awaitKind
 
     def teardown(self):
         pass
@@ -47,14 +62,11 @@ class LexerTest(unittest.TestCase):
 
     def test_id(self):
         lexer = Lexer(StubIo("someId1213"))
-        token = lexer.get_token()
-        self.assertTrue(isinstance(token, Token))
-        self.assertEqual(token.kind, TokenType.ID)
 
-        self.assertTrue(isinstance(token.val, SymbolEntry))
-        self.assertEqual(token.val.kind, TokenType.ID)
-        self.assertEqual(token.val.val, "someId1213")
-        self.assertEqual(token.val.line, 1)
+        token = lexer.get_token()
+
+        self.assertTrue(isinstance(token, Token))
+        token.awaitId(self, "someId1213", 1)
 
     def test_ws(self):
         lexer = Lexer(StubIo("  \t \n "))
@@ -64,6 +76,86 @@ class LexerTest(unittest.TestCase):
         lexer = Lexer(StubIo("\n"))
         token = lexer.get_token()
         self.assertIsNone(token)
+
+    def test_less_signs(self):
+        lexer = Lexer(StubIo("< <="))
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.OPERATOR, "<")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.OPERATOR, "<=")
+
+
+    def test_greater_signs(self):
+        lexer = Lexer(StubIo("> >="))
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.OPERATOR, ">")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.OPERATOR, ">=")
+
+    def test_equ_operators(self):
+        lexer = Lexer(StubIo("== <>"))
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.OPERATOR, "==")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.OPERATOR, "<>")
+
+    def test_integers(self):
+        lexer = Lexer(StubIo("10 01 23 -23"))
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.INTEGER, "10")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.INTEGER, "01")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.INTEGER, "23")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.INTEGER, "-23")
+
+
+    def test_function_call(self):
+        lexer = Lexer(StubIo("UpperCase(someArg);"))
+
+        token = lexer.get_token()
+        token.awaitId(self, "UpperCase", 1)
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.LPAREN, "(")
+
+        token = lexer.get_token()
+        token.awaitId(self, "someArg", 1)
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.RPAREN, ")")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.SEMICOLON, ";")
+
+
+    def test_assignment(self):
+        lexer = Lexer(StubIo("Key := UpCase;"))
+
+        token = lexer.get_token()
+        token.awaitId(self, "Key", 1)
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.ASSIGN, ":=")
+
+        token = lexer.get_token()
+        token.awaitId(self, "UpCase", 1)
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.SEMICOLON, ";")
+
+
 
 if __name__ == "__main__":
     unittest.main()

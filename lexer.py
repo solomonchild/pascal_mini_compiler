@@ -87,6 +87,8 @@ class Lexer:
                 ">=" : TokenType.OPERATOR,
                 "<=" : TokenType.OPERATOR,
                 "<>" : TokenType.OPERATOR,
+                "<" : TokenType.OPERATOR,
+                ">" : TokenType.OPERATOR,
                 "if" : TokenType.IF,
                 "and" : TokenType.AND,
                 "or" : TokenType.OR,
@@ -103,9 +105,6 @@ class Lexer:
                 "." : TokenType.DOT,
                 ";" : TokenType.SEMICOLON,
                 ":" : TokenType.COLON,
-                "\t" : TokenType.WS,
-                " " : TokenType.WS,
-                "\n" : TokenType.WS,
                 "+" : TokenType.OPERATOR,
                 "-" : TokenType.OPERATOR,
                 "\\" : TokenType.OPERATOR,
@@ -144,16 +143,45 @@ class Lexer:
                     char = self.stream.get_char()
                 if char:
                     self.stream.put_char()
+                continue
             elif self.isId(char):
                 self.stream.put_char()
                 self.readId()
                 return self.makeToken(TokenType.ID)
+
+            elif char is "-" or char is "+":
+                self.lexeme += char
+                char = self.stream.get_char()
+                if char in string.digits:
+                    while char and char in string.digits:
+                            self.lexeme += char
+                            char = self.stream.get_char()
+                    self.stream.put_char()
+                    return Token(TokenType.INTEGER, self.lexeme)
+                else:
+                    self.stream.put_char()
+                    self.lexeme = "" 
             elif char in string.digits:
-                while char and char in string.digits:
-                        self.lexeme += char
-                        char = self.stream.get_char()
-                self.stream.put_char()
-                return Token(TokenType.INTEGER, self.lexeme)
+                    while char and char in string.digits:
+                            self.lexeme += char
+                            char = self.stream.get_char()
+                    self.stream.put_char()
+                    return Token(TokenType.INTEGER, self.lexeme)
+            elif char is ":" or char is "<" or char is ">" or char is "=":
+                self.lexeme += char
+                char = self.stream.get_char()
+                if char is "=":
+                    self.lexeme += char
+                    return Token(self.keywords.get(self.lexeme, TokenType.UNKNOWN), self.lexeme)
+                elif char is ">":
+                    self.lexeme += char
+                    return Token(self.keywords.get(self.lexeme, TokenType.UNKNOWN), self.lexeme)
+                else:
+                    self.stream.put_char()
+                    return Token(self.keywords.get(self.lexeme, TokenType.UNKNOWN), self.lexeme)
+            if char in self.keywords:
+                self.lexeme += char
+                return Token(self.keywords.get(self.lexeme, TokenType.UNKNOWN), self.lexeme)
             else:
                 while char and char not in string.digits and char not in string.ascii_letters:
                     self.lexeme += char
