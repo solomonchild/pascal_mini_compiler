@@ -99,8 +99,8 @@ class Lexer:
                 "end" : TokenType.END,
                 "(" : TokenType.LPAREN,
                 ")" : TokenType.RPAREN,
-                "[" : TokenType.RSQUARE,
-                "]" : TokenType.LSQUARE,
+                "[" : TokenType.LSQUARE,
+                "]" : TokenType.RSQUARE,
                 "," : TokenType.COMMA,
                 "." : TokenType.DOT,
                 ";" : TokenType.SEMICOLON,
@@ -144,6 +144,16 @@ class Lexer:
                 if char:
                     self.stream.put_char()
                 continue
+            elif char is "\"" or char is "\'":
+                op_quote = char
+                char = self.stream.get_char()
+                escape = char is "\\"
+                while char and (escape or char is not op_quote):
+                    escape = char is "\\"
+                    if not escape:
+                        self.lexeme += char
+                    char = self.stream.get_char()
+                return Token(TokenType.LITERAL, self.lexeme)
             elif self.isId(char):
                 self.stream.put_char()
                 self.readId()
@@ -153,19 +163,23 @@ class Lexer:
                 self.lexeme += char
                 char = self.stream.get_char()
                 if char in string.digits:
-                    while char and char in string.digits:
+                    while char and char in string.digits or (char is "." and "." not in self.lexeme):
                             self.lexeme += char
                             char = self.stream.get_char()
                     self.stream.put_char()
+                    if "." in self.lexeme:
+                        return Token(TokenType.REAL, self.lexeme)
                     return Token(TokenType.INTEGER, self.lexeme)
                 else:
                     self.stream.put_char()
                     self.lexeme = "" 
             elif char in string.digits:
-                    while char and char in string.digits:
+                    while char and char in string.digits or (char is "." and "." not in self.lexeme):
                             self.lexeme += char
                             char = self.stream.get_char()
                     self.stream.put_char()
+                    if "." in self.lexeme:
+                        return Token(TokenType.REAL, self.lexeme)
                     return Token(TokenType.INTEGER, self.lexeme)
             elif char is ":" or char is "<" or char is ">" or char is "=":
                 self.lexeme += char

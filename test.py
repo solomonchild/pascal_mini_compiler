@@ -105,6 +105,25 @@ class LexerTest(unittest.TestCase):
         token = lexer.get_token()
         token.awaitKind(self, TokenType.OPERATOR, "<>")
 
+    def test_literal(self):
+        lexer = Lexer(StubIo("'Hi there1234@#!I\\'m a string\"\"'"))
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.LITERAL, "Hi there1234@#!I\'m a string\"\"")
+
+        lexer = Lexer(StubIo('\"Hi there1234@#!I\'m a string\\"\"'))
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.LITERAL, "Hi there1234@#!I\'m a string\"")
+
+        lexer = Lexer(StubIo('"Some str", "some str"'))
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.LITERAL, "Some str")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.COMMA, ",")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.LITERAL, "some str")
+
     def test_integers(self):
         lexer = Lexer(StubIo("10 01 23 -23"))
 
@@ -139,6 +158,39 @@ class LexerTest(unittest.TestCase):
         token = lexer.get_token()
         token.awaitKind(self, TokenType.SEMICOLON, ";")
 
+
+    def test_parens(self):
+        lexer = Lexer(StubIo("[]"))
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.LSQUARE, "[")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.RSQUARE, "]")
+
+    def test_real(self):
+        lexer = Lexer(StubIo("+0.9 -25.5 19.9"))
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.REAL, "+0.9")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.REAL, "-25.5")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.REAL, "19.9")
+
+    def test_integer(self):
+        lexer = Lexer(StubIo("+09 -25 -500"))
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.INTEGER, "+09")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.INTEGER, "-25")
+
+        token = lexer.get_token()
+        token.awaitKind(self, TokenType.INTEGER, "-500")
 
     def test_assignment(self):
         lexer = Lexer(StubIo("Key := UpCase;"))
