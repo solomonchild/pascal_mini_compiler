@@ -18,7 +18,7 @@ class StubIo():
         self.line_num = (lambda i: -~i)(self.line_num)
         return self.str
 
-    def putChar(self):
+    def putChar(self, howMany = 1):
         self.pos -= 1
 
     def getChar(self):
