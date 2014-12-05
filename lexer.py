@@ -54,9 +54,7 @@ class FileStream:
 
     def getChar(self):
         char = None
-        #if len(self.lines) == 0:
-            #raise Exception("No lines")
-        if self.pos == len(self._get_current_line()) - 1 and self.cur_line == len(self.lines) - 1 and self.eof:
+        if self.pos == len(self._get_current_line()) and self.cur_line == len(self.lines) - 1 and self.eof:
             return None
 
         char = self._get_current_line()[self.pos]
@@ -70,8 +68,9 @@ class FileStream:
                 line = line.rstrip("\n")
                 if line is not "":
                     self.lines.append(line)
-            self.pos = 0
-            self.cur_line += 1
+            if not self.eof: 
+                self.pos = 0
+                self.cur_line += 1
 
         return char 
 
@@ -147,8 +146,8 @@ class Lexer:
                 return i
         return None
 
-    def isId(self, str):
-        return (lambda s: s in string.ascii_letters)(str)
+    def isId(self):
+        return (lambda s: s in string.ascii_letters)(self.char)
 
     def readId(self):
         self.getChar()
@@ -206,7 +205,7 @@ class Lexer:
                         self.lexeme += self.char
                     self.getChar()
                 return self.processLexeme(TokenType.STRING)
-            elif self.isId(self.char):
+            elif self.isId():
                 self.putChar()
                 self.readId()
                 return self.processLexeme(TokenType.ID)
