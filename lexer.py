@@ -1,27 +1,41 @@
 import string
 from enum import Enum
 
-TokenType = Enum("TokenType", "LPAREN RPAREN IF AND OR THEN COMMA ID DOT COLON SEMICOLON PROCEDURE VAR BEGIN END ASSIGN OPERATOR WS LITERAL INTEGER REAL LSQUARE RSQUARE UNKNOWN")
+TokenType = Enum("TokenType", "LPAREN RPAREN IF AND OR THEN COMMA ID DOT COLON SEMICOLON PROCEDURE VAR BEGIN END ASSIGN OPERATOR WS STRING INTEGER REAL LSQUARE RSQUARE UNKNOWN")
 
 
 
 class Token:
-    def __init__(self, kind, val):
+    def __init__(self, kind, val, index, table):
         self.kind = kind
         self.val = val
+        self.idx = index
+        self.table = table
 
     def __str__(self):
-        return "Kind: {0}, value: [{1}]".format(self.kind, self.val)
+        return "Kind: {0}, value: {1}, idx: {2}".format(self.kind, self.val, self.idx)
 
-class SymbolEntry:
-
+class IDEntry:
     def __str__(self):
-            return "Kind: {0}, value: \"{1}\", line: {2}".format(self.kind, self.val, self.line)
+            return "Identifier({0}), value: \"{1}\"".format(self.kind, self.val)
 
-    def __init__(self, Token, value, line):
-        self.line = line
-        self.kind = Token
+    def __init__(self, kind, value):
+        self.kind = TokenType.ID
         self.val = value
+
+class LiteralEntry:
+    def __str__(self):
+            return "Literal({0}), value: \"{1}\", index of id table: {2}".format(self.kind, self.val, self.idx)
+
+    def __init__(self, kind, value):
+        self.kind = kind
+        self.val = value
+
+class KeywordTableEntry:
+    def __init__(self, val, kind, isSep = False):
+        self.val = val
+        self.kind = kind
+        self.isSep = isSep
 
 class FileStream:
     def __init__(self, filename):
@@ -71,6 +85,7 @@ class FileStream:
             self.pos -= 1
         
 
+    
 
 class Lexer:
 
@@ -81,35 +96,47 @@ class Lexer:
         self.sym_table = [ ]
         self.stream = stream
         self.lexeme = ""
-        self.keywords = {
-                ":=" : TokenType.ASSIGN,
-                "==" : TokenType.OPERATOR,
-                ">=" : TokenType.OPERATOR,
-                "<=" : TokenType.OPERATOR,
-                "<>" : TokenType.OPERATOR,
-                "<" : TokenType.OPERATOR,
-                ">" : TokenType.OPERATOR,
-                "if" : TokenType.IF,
-                "and" : TokenType.AND,
-                "or" : TokenType.OR,
-                "then" : TokenType.THEN,
-                "procedure" : TokenType.PROCEDURE,
-                "var" : TokenType.VAR,
-                "begin" : TokenType.BEGIN,
-                "end" : TokenType.END,
-                "(" : TokenType.LPAREN,
-                ")" : TokenType.RPAREN,
-                "[" : TokenType.LSQUARE,
-                "]" : TokenType.RSQUARE,
-                "," : TokenType.COMMA,
-                "." : TokenType.DOT,
-                ";" : TokenType.SEMICOLON,
-                ":" : TokenType.COLON,
-                "+" : TokenType.OPERATOR,
-                "-" : TokenType.OPERATOR,
-                "\\" : TokenType.OPERATOR,
-                "*" : TokenType.OPERATOR,
-        }
+        self.keywords = [
+                KeywordTableEntry(":=", TokenType.ASSIGN),
+                KeywordTableEntry("==", TokenType.OPERATOR),
+                KeywordTableEntry(">=", TokenType.OPERATOR),
+                KeywordTableEntry("<=", TokenType.OPERATOR),
+                KeywordTableEntry("<>", TokenType.OPERATOR),
+                KeywordTableEntry("<", TokenType.OPERATOR),
+                KeywordTableEntry(">", TokenType.OPERATOR),
+                KeywordTableEntry("if", TokenType.IF),
+                KeywordTableEntry("and", TokenType.AND),
+                KeywordTableEntry("or", TokenType.OR),
+                KeywordTableEntry("then", TokenType.THEN),
+                KeywordTableEntry("procedure", TokenType.PROCEDURE),
+                KeywordTableEntry("var", TokenType.VAR),
+                KeywordTableEntry("begin", TokenType.BEGIN),
+                KeywordTableEntry("end", TokenType.END),
+                KeywordTableEntry("(", TokenType.LPAREN, False),
+                KeywordTableEntry(")", TokenType.RPAREN, False),
+                KeywordTableEntry("[", TokenType.LSQUARE, False),
+                KeywordTableEntry("]", TokenType.RSQUARE, False),
+                KeywordTableEntry(",", TokenType.COMMA, False),
+                KeywordTableEntry(".", TokenType.DOT, False),
+                KeywordTableEntry(";", TokenType.SEMICOLON, False),
+                KeywordTableEntry(":", TokenType.COLON, False),
+                KeywordTableEntry("+", TokenType.OPERATOR),
+                KeywordTableEntry("-", TokenType.OPERATOR),
+                KeywordTableEntry("\\", TokenType.OPERATOR),
+                KeywordTableEntry("*", TokenType.OPERATOR),
+        ]
+
+        self.identifiers = [
+        ]
+
+        self.literals = [
+        ]
+    
+    def getIndexOfKw(self, val):
+        for i in range(len(self.keywords)):
+            if self.keywords[i].val == val:
+                return i
+        return None
 
     def isId(self, str):
         return (lambda s: s in string.ascii_letters)(str)
@@ -121,13 +148,24 @@ class Lexer:
                 char = self.stream.get_char()
         self.stream.put_char()
 
-    def makeToken(self, kind):
-        if self.lexeme in self.keywords:
-            return Token(self.keywords[self.lexeme], self.lexeme)
+    def processLexeme(self, kind = TokenType.ID):
+        if kind is TokenType.ID:
+            kwIndex = self.getIndexOfKw(self.lexeme)
+            #first check if exists in the keyword table
+            if kwIndex is not None:
+                kwEntry = self.keywords[kwIndex]
+                if self.lexeme == ":=":
+                return Token(kwEntry.kind, self.lexeme, kwIndex, self.keywords)
+            else:
+                #true ID, not a keyword
+                entry = IDEntry(kind, self.lexeme)
+                self.identifiers.append(entry)
+                return Token(TokenType.ID, self.lexeme, self.identifiers.index(entry), self.identifiers)
         else:
-            se = SymbolEntry(TokenType.ID, self.lexeme, self.stream.current_line_num())
-            self.sym_table.append(se)
-            return Token(TokenType.ID, se)
+            #literal
+            entry = LiteralEntry(kind, self.lexeme)
+            self.literals.append(entry)
+            return Token(kind, self.lexeme, self.literals.index(entry), self.literals)
 
     def get_token(self):
         global line_num
@@ -153,11 +191,11 @@ class Lexer:
                     if not escape:
                         self.lexeme += char
                     char = self.stream.get_char()
-                return Token(TokenType.LITERAL, self.lexeme)
+                return self.processLexeme(TokenType.STRING)
             elif self.isId(char):
                 self.stream.put_char()
                 self.readId()
-                return self.makeToken(TokenType.ID)
+                return self.processLexeme(TokenType.ID)
 
             elif char is "-" or char is "+":
                 self.lexeme += char
@@ -168,8 +206,8 @@ class Lexer:
                             char = self.stream.get_char()
                     self.stream.put_char()
                     if "." in self.lexeme:
-                        return Token(TokenType.REAL, self.lexeme)
-                    return Token(TokenType.INTEGER, self.lexeme)
+                        return self.processLexeme(TokenType.REAL)
+                    return self.processLexeme(TokenType.INTEGER)
                 else:
                     self.stream.put_char()
                     self.lexeme = "" 
@@ -179,31 +217,27 @@ class Lexer:
                             char = self.stream.get_char()
                     self.stream.put_char()
                     if "." in self.lexeme:
-                        return Token(TokenType.REAL, self.lexeme)
-                    return Token(TokenType.INTEGER, self.lexeme)
+                        return self.processLexeme(TokenType.REAL)
+                    return self.processLexeme(TokenType.INTEGER)
             elif char is ":" or char is "<" or char is ">" or char is "=":
                 self.lexeme += char
                 char = self.stream.get_char()
                 if char is "=":
                     self.lexeme += char
-                    return Token(self.keywords.get(self.lexeme, TokenType.UNKNOWN), self.lexeme)
+                    return self.processLexeme()
                 elif char is ">":
                     self.lexeme += char
-                    return Token(self.keywords.get(self.lexeme, TokenType.UNKNOWN), self.lexeme)
+                    return self.processLexeme()
                 else:
                     self.stream.put_char()
-                    return Token(self.keywords.get(self.lexeme, TokenType.UNKNOWN), self.lexeme)
-            if char in self.keywords:
+                    return self.processLexeme()
+            if self.getIndexOfKw(char):
                 self.lexeme += char
-                return Token(self.keywords.get(self.lexeme, TokenType.UNKNOWN), self.lexeme)
+                return self.processLexeme()
             else:
                 while char and char not in string.digits and char not in string.ascii_letters:
                     self.lexeme += char
                     char = self.stream.get_char()
                 self.stream.put_char()
-                return Token(TokenType.UNKNOWN, self.lexeme)
-
-    def print_sym_table(self):
-        for entry in self.sym_table:
-            print(entry )
+                return Token(TokenType.UNKNOWN, self.lexeme, 0)
 

@@ -37,17 +37,11 @@ class LexerTest(unittest.TestCase):
         def awaitKind(self, test, awaitedKind, awaitedVal):
             test.assertTrue(isinstance(self, Token))
             test.assertEqual(self.kind, awaitedKind)
-            test.assertEqual(self.val, awaitedVal)
+            entry = self.table[self.idx]
+            test.assertIsNotNone(entry)
+            test.assertEqual(entry.val, awaitedVal)
+            test.assertEqual(entry.kind, awaitedKind)
 
-        def awaitId(self, test, val, line):
-            test.assertTrue(isinstance(self, Token))
-            test.assertEqual(self.kind, TokenType.ID)
-
-            test.assertTrue(isinstance(self.val, SymbolEntry))
-            test.assertEqual(self.val.kind, TokenType.ID)
-            test.assertEqual(self.val.val, val)
-            test.assertEqual(self.val.line, line)
-        Token.awaitId = awaitId
         Token.awaitKind = awaitKind
 
     def teardown(self):
@@ -66,7 +60,7 @@ class LexerTest(unittest.TestCase):
         token = lexer.get_token()
 
         self.assertTrue(isinstance(token, Token))
-        token.awaitId(self, "someId1213", 1)
+        token.awaitKind(self, TokenType.ID, "someId1213")
 
     def test_ws(self):
         lexer = Lexer(StubIo("  \t \n "))
@@ -108,21 +102,21 @@ class LexerTest(unittest.TestCase):
     def test_literal(self):
         lexer = Lexer(StubIo("'Hi there1234@#!I\\'m a string\"\"'"))
         token = lexer.get_token()
-        token.awaitKind(self, TokenType.LITERAL, "Hi there1234@#!I\'m a string\"\"")
+        token.awaitKind(self, TokenType.STRING, "Hi there1234@#!I\'m a string\"\"")
 
         lexer = Lexer(StubIo('\"Hi there1234@#!I\'m a string\\"\"'))
         token = lexer.get_token()
-        token.awaitKind(self, TokenType.LITERAL, "Hi there1234@#!I\'m a string\"")
+        token.awaitKind(self, TokenType.STRING, "Hi there1234@#!I\'m a string\"")
 
         lexer = Lexer(StubIo('"Some str", "some str"'))
         token = lexer.get_token()
-        token.awaitKind(self, TokenType.LITERAL, "Some str")
+        token.awaitKind(self, TokenType.STRING, "Some str")
 
         token = lexer.get_token()
         token.awaitKind(self, TokenType.COMMA, ",")
 
         token = lexer.get_token()
-        token.awaitKind(self, TokenType.LITERAL, "some str")
+        token.awaitKind(self, TokenType.STRING, "some str")
 
     def test_integers(self):
         lexer = Lexer(StubIo("10 01 23 -23"))
@@ -144,13 +138,13 @@ class LexerTest(unittest.TestCase):
         lexer = Lexer(StubIo("UpperCase(someArg);"))
 
         token = lexer.get_token()
-        token.awaitId(self, "UpperCase", 1)
+        token.awaitKind(self, TokenType.ID, "UpperCase")
 
         token = lexer.get_token()
         token.awaitKind(self, TokenType.LPAREN, "(")
 
         token = lexer.get_token()
-        token.awaitId(self, "someArg", 1)
+        token.awaitKind(self, TokenType.ID,  "someArg")
 
         token = lexer.get_token()
         token.awaitKind(self, TokenType.RPAREN, ")")
@@ -196,13 +190,13 @@ class LexerTest(unittest.TestCase):
         lexer = Lexer(StubIo("Key := UpCase;"))
 
         token = lexer.get_token()
-        token.awaitId(self, "Key", 1)
+        token.awaitKind(self, TokenType.ID,  "Key")
 
         token = lexer.get_token()
         token.awaitKind(self, TokenType.ASSIGN, ":=")
 
         token = lexer.get_token()
-        token.awaitId(self, "UpCase", 1)
+        token.awaitKind(self, TokenType.ID,  "UpCase")
 
         token = lexer.get_token()
         token.awaitKind(self, TokenType.SEMICOLON, ";")
