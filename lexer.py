@@ -180,6 +180,15 @@ class Lexer:
     def putChar(self, howMany = 1):
         self.stream.putChar(howMany)
 
+    def handleNumber(self):
+        while self.char and self.char in string.digits or (self.char is "." and "." not in self.lexeme):
+                self.lexeme += self.char
+                self.getChar()
+        self.putChar()
+        if "." in self.lexeme:
+            return self.processLexeme(TokenType.REAL)
+        return self.processLexeme(TokenType.INTEGER)
+
     def get_token(self):
         global line_num
         while True:
@@ -195,6 +204,7 @@ class Lexer:
                 if self.char:
                     self.putChar()
                 continue
+
             elif self.char is "\"" or self.char is "\'":
                 op_quote = self.char
                 self.getChar()
@@ -205,6 +215,7 @@ class Lexer:
                         self.lexeme += self.char
                     self.getChar()
                 return self.processLexeme(TokenType.STRING)
+
             elif self.isId():
                 self.putChar()
                 self.readId()
@@ -214,25 +225,17 @@ class Lexer:
                 self.lexeme += self.char
                 self.getChar()
                 if self.char in string.digits:
-                    while self.char and self.char in string.digits or (self.char is "." and "." not in self.lexeme):
-                            self.lexeme += self.char
-                            self.getChar()
-                    self.putChar()
-                    if "." in self.lexeme:
-                        return self.processLexeme(TokenType.REAL)
-                    return self.processLexeme(TokenType.INTEGER)
+                    return self.handleNumber()
                 else:
+                    #put back both "-"(or "+") and current char
                     self.putChar(2)
+                    #get back "-" (or "+") and fall-through to the last if 
                     self.getChar()
                     self.lexeme = "" 
+
             elif self.char in string.digits:
-                    while self.char and self.char in string.digits or (self.char is "." and "." not in self.lexeme):
-                            self.lexeme += self.char
-                            self.getChar()
-                    self.putChar()
-                    if "." in self.lexeme:
-                        return self.processLexeme(TokenType.REAL)
-                    return self.processLexeme(TokenType.INTEGER)
+                return self.handleNumber()
+
             elif self.char is ":" or self.char is "<" or self.char is ">" or self.char is "=":
                 self.lexeme += self.char
                 self.getChar()
@@ -245,6 +248,7 @@ class Lexer:
                 else:
                     self.putChar()
                     return self.processLexeme()
+            #keywords get processed here ("default" case in C/C++)
             if self.getIndexOfKw(self.char) is not None:
                 self.lexeme += self.char
                 return self.processLexeme()
