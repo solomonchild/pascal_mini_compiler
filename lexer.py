@@ -52,7 +52,7 @@ class FileStream:
     def current_line_num(self):
         return self.cur_line + 1
 
-    def get_char(self):
+    def getChar(self):
         char = None
         #if len(self.lines) == 0:
             #raise Exception("No lines")
@@ -78,7 +78,7 @@ class FileStream:
     def _get_current_line(self):
         return self.lines[self.cur_line]
 
-    def put_char(self, how_many = 1):
+    def putChar(self, how_many = 1):
         while how_many > 0:
             if self.lines is []:
                 raise Exception("No lines")
@@ -150,11 +150,11 @@ class Lexer:
         return (lambda s: s in string.ascii_letters)(str)
 
     def readId(self):
-        char = self.stream.get_char()
+        char = self.stream.getChar()
         while char and (char in string.ascii_letters or char in string.digits):
                 self.lexeme += char
-                char = self.stream.get_char()
-        self.stream.put_char()
+                char = self.stream.getChar()
+        self.stream.putChar()
 
     def processLexeme(self, kind = TokenType.ID):
         if kind is TokenType.ID:
@@ -178,58 +178,58 @@ class Lexer:
         global line_num
         while True:
             self.lexeme = ""
-            char = self.stream.get_char()
+            char = self.stream.getChar()
 
             if not char:
                 return None
 
             if char in string.whitespace:
                 while char and char in string.whitespace:
-                    char = self.stream.get_char()
+                    char = self.stream.getChar()
                 if char:
-                    self.stream.put_char()
+                    self.stream.putChar()
                 continue
             elif char is "\"" or char is "\'":
                 op_quote = char
-                char = self.stream.get_char()
+                char = self.stream.getChar()
                 escape = char is "\\"
                 while char and (escape or char is not op_quote):
                     escape = char is "\\"
                     if not escape:
                         self.lexeme += char
-                    char = self.stream.get_char()
+                    char = self.stream.getChar()
                 return self.processLexeme(TokenType.STRING)
             elif self.isId(char):
-                self.stream.put_char()
+                self.stream.putChar()
                 self.readId()
                 return self.processLexeme(TokenType.ID)
 
             elif char is "-" or char is "+":
                 self.lexeme += char
-                char = self.stream.get_char()
+                char = self.stream.getChar()
                 if char in string.digits:
                     while char and char in string.digits or (char is "." and "." not in self.lexeme):
                             self.lexeme += char
-                            char = self.stream.get_char()
-                    self.stream.put_char()
+                            char = self.stream.getChar()
+                    self.stream.putChar()
                     if "." in self.lexeme:
                         return self.processLexeme(TokenType.REAL)
                     return self.processLexeme(TokenType.INTEGER)
                 else:
-                    self.stream.put_char(2)
-                    char = self.stream.get_char()
+                    self.stream.putChar(2)
+                    char = self.stream.getChar()
                     self.lexeme = "" 
             elif char in string.digits:
                     while char and char in string.digits or (char is "." and "." not in self.lexeme):
                             self.lexeme += char
-                            char = self.stream.get_char()
-                    self.stream.put_char()
+                            char = self.stream.getChar()
+                    self.stream.putChar()
                     if "." in self.lexeme:
                         return self.processLexeme(TokenType.REAL)
                     return self.processLexeme(TokenType.INTEGER)
             elif char is ":" or char is "<" or char is ">" or char is "=":
                 self.lexeme += char
-                char = self.stream.get_char()
+                char = self.stream.getChar()
                 if char is "=":
                     self.lexeme += char
                     return self.processLexeme()
@@ -237,7 +237,7 @@ class Lexer:
                     self.lexeme += char
                     return self.processLexeme()
                 else:
-                    self.stream.put_char()
+                    self.stream.putChar()
                     return self.processLexeme()
             if self.getIndexOfKw(char) is not None:
                 self.lexeme += char
@@ -245,8 +245,8 @@ class Lexer:
             else:
                 while char and char not in string.digits and char not in string.ascii_letters:
                     self.lexeme += char
-                    char = self.stream.get_char()
-                self.stream.put_char()
+                    char = self.stream.getChar()
+                self.stream.putChar()
                 return Token(TokenType.UNKNOWN, self.lexeme, 0, None)
 
     def printTable(self, table):
