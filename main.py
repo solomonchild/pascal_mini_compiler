@@ -5,7 +5,7 @@ def main():
     lexer = Lexer(stream)
 
     while True:
-        line =  lexer.get_token()
+        line =  lexer.getToken()
         if line == None:
             break
         elif line.kind == TokenType.UNKNOWN:

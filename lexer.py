@@ -106,7 +106,7 @@ class Lexer:
         self.char = None
         self.keywords = [
                 KeywordTableEntry(":=", TokenType.ASSIGN),
-                KeywordTableEntry("==", TokenType.OPERATOR),
+                KeywordTableEntry("=", TokenType.OPERATOR),
                 KeywordTableEntry(">=", TokenType.OPERATOR),
                 KeywordTableEntry("<=", TokenType.OPERATOR),
                 KeywordTableEntry("<>", TokenType.OPERATOR),
@@ -154,7 +154,8 @@ class Lexer:
         while self.char and (self.char in string.ascii_letters or self.char in string.digits):
                 self.lexeme += self.char
                 self.getChar()
-        self.putChar()
+        if self.char is not None:
+            self.putChar()
 
     def processLexeme(self, kind = TokenType.ID):
         if kind is TokenType.ID:
@@ -181,15 +182,20 @@ class Lexer:
         self.stream.putChar(howMany)
 
     def handleNumber(self):
-        while self.char and self.char in string.digits or (self.char is "." and "." not in self.lexeme):
+        while self.char and self.char not in string.whitespace:
+            if self.char in string.digits or (self.char is "." and "." not in self.lexeme):
                 self.lexeme += self.char
                 self.getChar()
+            elif self.getIndexOfKw(self.char) is None:
+                return self.processUnknown() 
+            else:
+                break
         self.putChar()
         if "." in self.lexeme:
             return self.processLexeme(TokenType.REAL)
         return self.processLexeme(TokenType.INTEGER)
 
-    def get_token(self):
+    def getToken(self):
         global line_num
         while True:
             self.lexeme = ""
@@ -253,11 +259,14 @@ class Lexer:
                 self.lexeme += self.char
                 return self.processLexeme()
             else:
-                while self.char and self.char not in string.digits and self.char not in string.ascii_letters:
-                    self.lexeme += self.char
-                    self.getChar()
-                self.putChar()
-                return Token(TokenType.UNKNOWN, self.lexeme, 0, None)
+                return self.processUnknown()
+                        
+    def processUnknown(self):
+        while self.char and self.char not in string.whitespace:
+            self.lexeme += self.char
+            self.getChar()
+        self.putChar()
+        return Token(TokenType.UNKNOWN, self.lexeme, 0, None)
 
     def printTable(self, table):
         i = 0
