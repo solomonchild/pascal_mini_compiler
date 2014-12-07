@@ -1,6 +1,6 @@
 procedure TCalcDisplay.Draw; 
 var   
-#Color: Byte;   
+Color: Byte;   
   I: Integer; 
   B: TDrawBuffer; 
 begin 

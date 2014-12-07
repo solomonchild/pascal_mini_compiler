@@ -1,20 +1,24 @@
-from lexer import *
+from pascal_parser.lexer import *
+from pascal_parser.parser import *
+import sys
 
 def main():
-    stream = FileStream("input.pas")
+    fileName = None
+    if len(sys.argv) > 1:
+        fileName = sys.argv[1]
+    stream = FileStream(fileName)
     lexer = Lexer(stream)
-
-    while True:
-        line =  lexer.getToken()
-        if line == None:
-            break
-        elif line.kind == TokenType.UNKNOWN:
-            print("\nError: Unknown lexeme {0} at line {1}".format(line.val, lexer.stream.current_line_num()))
-            return
-        print(line)
-
-    print("\nSuccess: got a stream of tokens")
+    parser = Parser(lexer)
+    result = parser.parse()
+    if not result:
+        print("\nInvalid syntax")
+        return
+    else:
+        print("\nSuccessfully recognized syntax")
     
+    print("\nPrinting a table of lexemes:\n")
+    lexer.printTable(lexer.lexemes)
+
     print("\nPrinting a table of keywords:\n")
     lexer.printTable(lexer.keywords)
     print("\nPrinting a table of literals:\n")

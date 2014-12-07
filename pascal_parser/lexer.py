@@ -11,11 +11,12 @@ class KWList(list):
         return None
 
 class Token:
-    def __init__(self, kind, val, index, table):
+    def __init__(self, kind, val, index, table, lineNum):
         self.kind = kind
         self.val = val
         self.idx = index
         self.table = table
+        self.line = lineNum
 
     def __str__(self):
         return "Kind: {0}, value: \"{1}\", idx: {2}".format(self.kind, self.val, self.idx)
@@ -70,7 +71,7 @@ class FileStream:
                 line = self.fd.readline()
                 if line is "":
                     self.eof = True
-                line = line.rstrip("\n")
+                #line = line.rstrip("\n")
                 if line is not "":
                     self.lines.append(line)
             if not self.eof: 
@@ -144,6 +145,9 @@ class Lexer:
 
         self.literals = [
         ]
+
+        self.lexemes = [
+        ]
     
 
     def isId(self):
@@ -163,17 +167,23 @@ class Lexer:
             #first check if exists in the keyword table
             if kwIndex is not None:
                 kwEntry = self.keywords[kwIndex]
-                return Token(kwEntry.kind, self.lexeme, kwIndex, self.keywords)
+                token = Token(kwEntry.kind, self.lexeme, kwIndex, self.keywords, self.stream.current_line_num())
+                self.lexemes.append(token)
+                return token
             else:
                 #true ID, not a keyword
                 entry = IDEntry(kind, self.lexeme)
                 self.identifiers.append(entry)
-                return Token(TokenType.ID, self.lexeme, self.identifiers.index(entry), self.identifiers)
+                token = Token(TokenType.ID, self.lexeme, self.identifiers.index(entry), self.identifiers, self.stream.current_line_num())
+                self.lexemes.append(token)
+                return token
         else:
             #literal
             entry = LiteralEntry(kind, self.lexeme)
             self.literals.append(entry)
-            return Token(kind, self.lexeme, self.literals.index(entry), self.literals)
+            token = Token(kind, self.lexeme, self.literals.index(entry), self.literals, self.stream.current_line_num())
+            self.lexemes.append(token)
+            return token
 
     def getChar(self):
         self.char = self.stream.getChar()
@@ -266,7 +276,7 @@ class Lexer:
             self.lexeme += self.char
             self.getChar()
         self.putChar()
-        return Token(TokenType.UNKNOWN, self.lexeme, 0, None)
+        return Token(TokenType.UNKNOWN, self.lexeme, 0, None, 0)
 
     def printTable(self, table):
         i = 0
