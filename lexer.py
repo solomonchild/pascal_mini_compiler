@@ -3,7 +3,12 @@ from enum import Enum
 
 TokenType = Enum("TokenType", "LPAREN RPAREN IF AND OR THEN COMMA ID DOT COLON SEMICOLON PROCEDURE VAR BEGIN END ASSIGN OPERATOR WS STRING INTEGER REAL LSQUARE RSQUARE UNKNOWN")
 
-
+class KWList(list):
+    def index(self, val):
+        for i in range(len(self)):
+            if self[i].val == val:
+                return i
+        return None
 
 class Token:
     def __init__(self, kind, val, index, table):
@@ -104,7 +109,7 @@ class Lexer:
         self.stream = stream
         self.lexeme = ""
         self.char = None
-        self.keywords = [
+        self.keywords = KWList([
                 KeywordTableEntry(":=", TokenType.ASSIGN),
                 KeywordTableEntry("=", TokenType.OPERATOR),
                 KeywordTableEntry(">=", TokenType.OPERATOR),
@@ -132,7 +137,7 @@ class Lexer:
                 KeywordTableEntry("-", TokenType.OPERATOR),
                 KeywordTableEntry("\\", TokenType.OPERATOR),
                 KeywordTableEntry("*", TokenType.OPERATOR),
-        ]
+        ])
 
         self.identifiers = [
         ]
@@ -140,11 +145,6 @@ class Lexer:
         self.literals = [
         ]
     
-    def getIndexOfKw(self, val):
-        for i in range(len(self.keywords)):
-            if self.keywords[i].val == val:
-                return i
-        return None
 
     def isId(self):
         return (lambda s: s in string.ascii_letters)(self.char)
@@ -159,7 +159,7 @@ class Lexer:
 
     def processLexeme(self, kind = TokenType.ID):
         if kind is TokenType.ID:
-            kwIndex = self.getIndexOfKw(self.lexeme)
+            kwIndex = self.keywords.index(self.lexeme)
             #first check if exists in the keyword table
             if kwIndex is not None:
                 kwEntry = self.keywords[kwIndex]
@@ -186,7 +186,7 @@ class Lexer:
             if self.char in string.digits or (self.char is "." and "." not in self.lexeme):
                 self.lexeme += self.char
                 self.getChar()
-            elif self.getIndexOfKw(self.char) is None:
+            elif self.keywords.index(self.char) is None:
                 return self.processUnknown() 
             else:
                 break
@@ -255,7 +255,7 @@ class Lexer:
                     self.putChar()
                     return self.processLexeme()
             #keywords get processed here ("default" case in C/C++)
-            if self.getIndexOfKw(self.char) is not None:
+            if self.keywords.index(self.char) is not None:
                 self.lexeme += self.char
                 return self.processLexeme()
             else:
