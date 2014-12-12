@@ -162,21 +162,25 @@ class Lexer:
             self.putChar()
 
     def processLexeme(self, kind = TokenType.ID):
-        if kind is TokenType.ID:
+        if kind is TokenType.ID or kind is TokenType.OPERATOR:
             kwIndex = self.keywords.index(self.lexeme)
-            #first check if exists in the keyword table
             if kwIndex is not None:
                 kwEntry = self.keywords[kwIndex]
                 token = Token(kwEntry.kind, self.lexeme, kwIndex, self.keywords, self.stream.currentLineNum())
                 self.lexemes.append(token)
                 return token
             else:
-                #true ID, not a keyword
-                entry = IDEntry(kind, self.lexeme)
-                self.identifiers.append(entry)
-                token = Token(TokenType.ID, self.lexeme, self.identifiers.index(entry), self.identifiers, self.stream.currentLineNum())
-                self.lexemes.append(token)
-                return token
+                if kind is TokenType.OPERATOR:
+                    #back down one character, as processUnknown will append it back
+                    self.lexeme = self.lexeme[:-1]
+                    return self.processUnknown()
+                elif kind is TokenType.ID:
+                    #true ID, not a keyword
+                    entry = IDEntry(kind, self.lexeme)
+                    self.identifiers.append(entry)
+                    token = Token(TokenType.ID, self.lexeme, self.identifiers.index(entry), self.identifiers, self.stream.currentLineNum())
+                    self.lexemes.append(token)
+                    return token
         else:
             #literal
             entry = LiteralEntry(kind, self.lexeme)
@@ -257,13 +261,13 @@ class Lexer:
                 self.getChar()
                 if self.char is "=":
                     self.lexeme += self.char
-                    return self.processLexeme()
+                    return self.processLexeme(TokenType.OPERATOR)
                 elif self.char is ">":
                     self.lexeme += self.char
-                    return self.processLexeme()
+                    return self.processLexeme(TokenType.OPERATOR)
                 else:
                     self.putChar()
-                    return self.processLexeme()
+                    return self.processLexeme(TokenType.OPERATOR)
             #keywords get processed here ("default" case in C/C++)
             if self.keywords.index(self.char) is not None:
                 self.lexeme += self.char
