@@ -1,11 +1,10 @@
 from .lexer import *
 
-#<G> ::= <E>
-
-#<E> ::= if <E'> then <S> | (<E'>) and (<E'>)  
-#<E'> ::= (<E''>)  | <E'> | e
-#<E''> :: = ID OPERATOR ID | ID OPERATOR STRING
-#<S> ::= ID := STRING ;
+#<G> ::= <S>
+#<S> ::= if <E> then <S> | <ID> := <STRING> ;
+#<E> ::= <ID> <OP> <ID> | <ID> <OP> <STRING> | (<E>) and (<E>)
+#<ID> ::= [a-zA-Z_][a-zA-Z0-9_]*
+#<OP> ::= - | + | * | / 
 
 class Parser:
 
@@ -66,11 +65,11 @@ class Parser:
 
     def parse(self):
         while True:
-            line = self.lexer.getToken()
-            if line == None:
+            token = self.lexer.getToken()
+            if token == None:
                 break
-            elif line.kind == TokenType.UNKNOWN:
-                print("\nError: Unknown lexeme {0} at line {1}".format(line.val, self.lexer.stream.current_line_num()))
+            elif token.kind == TokenType.UNKNOWN:
+                print("\nError: Unknown lexeme {0} at line {1}".format(token.val, self.lexer.stream.currentLineNum()))
                 return
         self.tokens = self.lexer.lexemes
         result = self.S() and self.token_n == len(self.tokens)
