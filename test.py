@@ -1,5 +1,5 @@
 import unittest
-from lexer import *
+from pascal_parser.lexer import * 
 
 class StubIo():
     def __init__(self, str):
@@ -7,7 +7,7 @@ class StubIo():
         self.pos = 0
         self.line_num = 0
 
-    def current_line_num(self):
+    def currentLineNum(self):
         return self.line_num + 1
 
     def readline(self):

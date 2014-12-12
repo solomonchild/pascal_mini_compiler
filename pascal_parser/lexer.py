@@ -55,18 +55,18 @@ class FileStream:
         self.cur_line = 0
         self.eof = False
 
-    def current_line_num(self):
+    def currentLineNum(self):
         return self.cur_line + 1
 
     def getChar(self):
         char = None
-        if self.pos == len(self._get_current_line()) and self.cur_line == len(self.lines) - 1 and self.eof:
+        if self.pos == len(self.currentLine()) and self.cur_line == len(self.lines) - 1 and self.eof:
             return None
 
-        char = self._get_current_line()[self.pos]
+        char = self.currentLine()[self.pos]
         self.pos += 1
 
-        if self.pos >= len(self._get_current_line()):
+        if self.pos >= len(self.currentLine()):
             if self.cur_line == len(self.lines) -1:
                 line = self.fd.readline()
                 if line is "":
@@ -80,7 +80,7 @@ class FileStream:
 
         return char 
 
-    def _get_current_line(self):
+    def currentLine(self):
         return self.lines[self.cur_line]
 
     def putChar(self, how_many = 1):
@@ -92,7 +92,7 @@ class FileStream:
                     raise Exception("Cannot put char: zeroeth position within only line")
                 else:
                     self.cur_line -= 1
-                    self.pos = len(self._get_current_line()) - 1
+                    self.pos = len(self.currentLine()) - 1
             else:
                 self.pos -= 1
             how_many -= 1
@@ -167,21 +167,21 @@ class Lexer:
             #first check if exists in the keyword table
             if kwIndex is not None:
                 kwEntry = self.keywords[kwIndex]
-                token = Token(kwEntry.kind, self.lexeme, kwIndex, self.keywords, self.stream.current_line_num())
+                token = Token(kwEntry.kind, self.lexeme, kwIndex, self.keywords, self.stream.currentLineNum())
                 self.lexemes.append(token)
                 return token
             else:
                 #true ID, not a keyword
                 entry = IDEntry(kind, self.lexeme)
                 self.identifiers.append(entry)
-                token = Token(TokenType.ID, self.lexeme, self.identifiers.index(entry), self.identifiers, self.stream.current_line_num())
+                token = Token(TokenType.ID, self.lexeme, self.identifiers.index(entry), self.identifiers, self.stream.currentLineNum())
                 self.lexemes.append(token)
                 return token
         else:
             #literal
             entry = LiteralEntry(kind, self.lexeme)
             self.literals.append(entry)
-            token = Token(kind, self.lexeme, self.literals.index(entry), self.literals, self.stream.current_line_num())
+            token = Token(kind, self.lexeme, self.literals.index(entry), self.literals, self.stream.currentLineNum())
             self.lexemes.append(token)
             return token
 
